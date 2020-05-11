@@ -1,0 +1,53 @@
+.FILE-NAVIGATION {
+    min-width: 200px;
+    box-sizing: border-box;
+    height: 100%;
+    background: #404040;
+    color: white;
+    h1 {
+        cursor: pointer;
+        padding: 0 10px;
+        background: #707070;
+        line-height: 1.5rem;
+        font-weight: 600;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    .open-file {
+        cursor: pointer;
+        padding: 5px;
+        display: flex;
+        justify-content: space-between;
+        .modify {
+            font-style: italic;
+        }
+    }
+
+    .file-wrapper {
+        p {
+            cursor: pointer;
+            padding: 0 10px;
+            line-height: 1.25rem;
+
+            &::selection {
+                background: none;
+            }
+            &:hover {
+                background: #505050;
+            }
+            &.active {
+                background: #505050;
+            }
+        }
+        .direcotry-wrapper {
+            p {
+                vertical-align: middle;
+                img {
+                    text-align: center;
+                    vertical-align: middle;
+                }
+            }
+        }
+    }
+}
