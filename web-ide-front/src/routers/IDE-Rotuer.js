@@ -9,7 +9,7 @@ import classnames from 'classnames';
 import Alert from '../modules/Alert';
 import Http from '../modules/Http';
 
-import { setProject, selectFile, setEventState, pushOpenFile, dropFile, renameFile, removeOpenFile, setOpenFiles } from '../actions';
+import { setProject, selectFile, setEventState, pushOpenFile, dropFile,renameFile, removeOpenFile, setOpenFiles } from '../actions';
 import { connect } from 'react-redux';
 import io from 'socket.io-client';
 import ModalPortal from '../modules/ModalPortal';
@@ -19,6 +19,7 @@ export const EVENT_TYPE = {
     SAVE: "SAVE",
     NEW_FILE: "NEW_FILE",
     NEW_FOLDER: "NEW_FOLDER",
+    DROP_FOLDER: "DROP_FOLDER",
     CLOSE_FILE: "CLOSE_FILE",
     DROP_FILE: "DROP_FILE",
     RENAME_FILE: "RENAME_FILE",
@@ -47,16 +48,15 @@ const shortcuts = [
 function CreateNewFileBody({project, onChangeName, onChangePath}) {
     const [name, setName] = React.useState("");
     const [ pathname, setPathname ] = React.useState("");
-    console.log("파일 저장");
     React.useEffect(()=>{ console.log("ischange!!, pathname", pathname); onChangePath(pathname); }, [ pathname ]);
 
     function Directory({files}) {
         const directory = files.map((file, tabSize)=> {
-            if(!file.isDirectory) { return; }
+            if(!file.isDirectory) { return; } // 파일이 폴더가 아니면
 
             return (
                 <>
-                    <p style={{"paddingLeft": tabSize*15}} 
+                    <p style={{"paddingLeft": tabSize*15}} // 생성시 뜨는 목록
                         className={classnames({active: pathname === file.path })}
                         onClick={()=>{setPathname(file.path)}}>{file.name}</p>
                     <Directory files={file.files}></Directory>
@@ -156,6 +156,8 @@ function DeleteFileBody({project, onChangeName, onChangePath}) {
     )
 }
 
+
+
 class IDERouter extends React.Component {
     state = { consoleOut: "", consoleBuffer: "" ,lintOut: "", consoleType: "console", navigation: true, console: true };
 
@@ -209,6 +211,9 @@ class IDERouter extends React.Component {
             case EVENT_TYPE.NEW_FOLDER:
                 this.createNewFolder("");
                 break;
+            case EVENT_TYPE.DROP_FOLDER:
+                this.dropFolder(this.props.selectFile);
+                break;
             case EVENT_TYPE.CLOSE_FILE:
                 this.closeFile(additional ? additional : this.props.selectFile);
                 break;
@@ -260,13 +265,11 @@ class IDERouter extends React.Component {
 
     createFileIdx = 1;
     createNewFile(text="") {
-        console.log("시작");
         const file = {
             name: `undefined-${this.createFileIdx++}`,
             fullpath: null, modify: true,
             ext: "", data : text
         }
-
         this.props.pushOpenFile(file);
     }
 
@@ -277,7 +280,6 @@ class IDERouter extends React.Component {
             fullpath: null,
             ext: "", data : text
         }
-        console.log("폴더 생성");
         Alert({
             title: "새 폴더 생성",
             text: (<CreateNewFileBody project={this.props.project} 
@@ -286,6 +288,7 @@ class IDERouter extends React.Component {
             btns: [
                 {text: "예", onClick: ()=>{
                     console.log("createfilebody");
+                    console.log(!folder.isDirectory);
                     this.onSaveNewFolder(folder)
                 }},
                 {text: "아니오", onClick: ()=>{}}
@@ -324,7 +327,15 @@ class IDERouter extends React.Component {
         });
     }//
 
+
     dropFile(file) {
+        const folder = {
+            name: `undefined-${this.createFolderIdx++}`,
+            fullpath: null,
+            ext: "", data : ""
+        }
+        if(!file.isDirectory){//
+            console.log(file.isDirectory);
         Alert({
                 title: "파일 삭제", 
                 text: (<DeleteFileBody project={this.props.project} 
@@ -337,10 +348,23 @@ class IDERouter extends React.Component {
                     {text: "아니오", onClick: ()=>{}}
                 ]
             });
+        }
+            Alert({
+                title: "폴더 삭제 ",
+                text: (<DeleteFileBody project={this.props.project} 
+                        onChangePath={(path)=>{folder.dir = path}}
+                        onChangeName={(name)=>{folder.name = name}}></DeleteFileBody>),
+                btns: [
+                    {text: "예", onClick: ()=>{
+                        this.onDelteFolder(folder)
+                    }},
+                    {text: "아니오", onClick: ()=>{}}
+                ]
+            });
             return;
     }
+    
     onDeleteFile(file){//
-        console.log(file);
         file.dir = file.path;
         const _path = file.dir;
         Http.post({
@@ -371,6 +395,37 @@ class IDERouter extends React.Component {
             alert(e); // TODO: when fail to modify files
         });
     }//
+    
+    onDelteFolder(folder){ 
+        const _path = folder.dir ? folder.dir + "/" : "" + folder.name;
+        Http.post({
+            path: `/projects/${this.props.project.id}`,
+            params: { type: "delete" },
+            payload: { name: folder.name, data: folder.data, path: folder.dir },
+        }).then(({data})=>{ 
+            this.getProject(()=>{
+                const { project, openFiles } = this.props;
+                const _find = (prev, curr) => {
+                    if(curr.path === _path) return curr;
+                    if(curr.files) {
+                        const fileInChildren = curr.files.reduce(_find, undefined);
+                        if(fileInChildren) return fileInChildren;
+                    }
+        
+                    return prev;
+                }
+        
+                const fileOnProject = project.files.reduce(_find, undefined);
+
+                openFiles[openFiles.indexOf(folder)] = fileOnProject;
+                this.props.setOpenFiles(Object.assign([], openFiles));
+                this.props.setSelectFile(fileOnProject)
+            });
+        }).catch(e=>{
+            alert(e); // TODO: when fail to modify files
+        });
+    }//
+    
     
     closeFile(file) {
         const { openFiles, selectFile } = this.props;
@@ -403,8 +458,6 @@ class IDERouter extends React.Component {
     }
     
     renameFile(file) {
-        console.log("change");
-        console.log(file.path);
         Alert({
             title: "파일명 변경",
             text: (<RenameFileBody project={this.props.project} 
@@ -412,7 +465,6 @@ class IDERouter extends React.Component {
                     onChangeName={(name)=>{file.name = name}}></RenameFileBody>),
             btns: [
                 {text: "예", onClick: ()=>{
-                    console.log("createfilebody");
                     this.onSaveRenamedFile(file);
                 }},
                 {text: "아니오", onClick: ()=>{}}
@@ -421,11 +473,9 @@ class IDERouter extends React.Component {
 }
 
 onSaveRenamedFile(file){
-    console.log(file);
     file.dir = file.path;
     const _path = file.dir;
     //file.dir ? file.dir + "/" : "" + file.name;
-    console.log(_path);
     Http.post({
         path: `/projects/${this.props.project.id}`,
         params: { type: "rename" },
@@ -450,7 +500,6 @@ onSaveRenamedFile(file){
             this.props.setSelectFile(fileOnProject)
         });
     }).catch(e=>{
-        console.log(e);
         alert(e); // TODO: when fail to modify files
     });
 }
@@ -481,7 +530,6 @@ onSaveRenamedFile(file){
                 this.props.setSelectFile(fileOnProject)
             });
         }).catch(e=>{
-            console.log(e);
             alert(e); // TODO: when fail to modify files
         });
     }
@@ -503,7 +551,6 @@ onSaveRenamedFile(file){
         const fileOnProject = project.files.reduce(_find, undefined);
         
         if(!fileOnProject) {
-            console.log("tnstj?")
             Alert({
                 title: "새 파일 생성",
                 text: (<CreateNewFileBody project={this.props.project} 
@@ -511,8 +558,6 @@ onSaveRenamedFile(file){
                         onChangeName={(name)=>{file.name = name}}></CreateNewFileBody>),
                 btns: [
                     {text: "예", onClick: ()=>{
-                        console.log("createfilebody");
-                        console.log(file.dir);
                         this.onSaveNewFile(file)
                     }},
                     {text: "아니오", onClick: ()=>{}}
@@ -521,7 +566,6 @@ onSaveRenamedFile(file){
             return;
         }
 
-        console.log(file.path);
 
         Http.post({
             path: `/projects/${this.props.project.id}`,
@@ -529,7 +573,6 @@ onSaveRenamedFile(file){
             payload: { data: file.data, path: file.path },
             disableLoading: true
         }).catch(e=>{
-            console.log(e);
             alert(e); // TODO: when fail to modify files
         });
         
@@ -541,7 +584,6 @@ onSaveRenamedFile(file){
 
     output = ""
     compileAndRunSource() {
-        console.log("aa")
         const { project } = this.props;
         const socket = io(process.env.REACT_APP_API_SERVER);
         socket.emit("compile", { projectId: project.id });
