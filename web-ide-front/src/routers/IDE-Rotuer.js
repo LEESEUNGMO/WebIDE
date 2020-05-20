@@ -9,7 +9,7 @@ import classnames from 'classnames';
 import Alert from '../modules/Alert';
 import Http from '../modules/Http';
 
-import { setProject, selectFile, setEventState, pushOpenFile, dropFile, dropFolder, renameFile, removeOpenFile, setOpenFiles } from '../actions';
+import { setProject, selectFile, setEventState, pushOpenFile, dropFile, dropFolder, renameFile, removeOpenFile, setOpenFiles, selectFolder } from '../actions';
 import { connect } from 'react-redux';
 import io from 'socket.io-client';
 import ModalPortal from '../modules/ModalPortal';
@@ -19,9 +19,9 @@ export const EVENT_TYPE = {
     SAVE: "SAVE",
     NEW_FILE: "NEW_FILE",
     NEW_FOLDER: "NEW_FOLDER",
-    DROP_FOLDER: "DROP_FOLDER",
     CLOSE_FILE: "CLOSE_FILE",
     DROP_FILE: "DROP_FILE",
+    DROP_FOLDER: "DROP_FOLDER",
     RENAME_FILE: "RENAME_FILE",
     COMPILE: "COMPILE",
     RUN: "RUN",
@@ -89,6 +89,7 @@ function RenameFileBody({ project, onChangeName, onChangePath }) {
     const [pathname, setPathname] = React.useState("");
     console.log("파일명 수정");
     React.useEffect(() => { console.log("ischange!!, pathname", pathname); onChangePath(pathname); }, [pathname]);
+
     function Directory({ files }) {
         const directory = files.map((file, tabSize) => {
             if (!file.isDirectory) { return; }
@@ -147,29 +148,36 @@ function DeleteFileBody({ project, onChangeName, onChangePath }) {
     )
 }
 
-/*
+
 function DeleteFolderBody({ project, onChangeName, onChangePath }) {
     const [name, setName] = React.useState("");
     const [pathname, setPathname] = React.useState("");
     React.useEffect(() => { console.log("ischange!!, pathname", pathname); onChangePath(pathname); }, [pathname]);
 
-    function Directory({ files }) {
-        const directory = files.map((file, tabSize) => {
-            if (!file.isDirectory) { return; }
-            // return (
-            //     <>
-            //         <p style={{"paddingLeft": tabSize*15}} 
-            //             className={classnames({active: pathname === file.path })}
-            //             onClick={()=>{setPathname(file.path)}}>{file.name}</p>
-            //         <Directory files={file.files}></Directory>
-            //     </>
-            // )//폴더목록
+    function Folder({ folders }) {
+        console.log(folders)
+        const directory = folders.map((folder, tabSize) => {
+            if (!folder.isDirectory) { return; }
+            /*
+            return (
+                <>
+                    <p style={{ "paddingLeft": tabSize * 15 }}
+                        className={classnames({ active: pathname === file.path })}
+                        onClick={() => { setPathname(file.path) }}>{file.name}</p>
+                    <Directory files={file.files}></Directory>
+                </>
+            )//폴더목록
+            */
         });
         return directory;
     }
-
+    return (
+        <>
+        </>
+    )
 }
-*/
+
+
 
 
 
@@ -350,125 +358,132 @@ class IDERouter extends React.Component {
 
 
     dropFile(file) {
-        console.log("DropFile Function Call")
-        console.log(file);
-        
-        Alert({
-            title: "파일 삭제",
-            text :(<DeleteFileBody project={this.props.project}
-                onChangePath={(path) => { file.dir = path }}
-                onChangeName={(name) => { file.name = name }}></DeleteFileBody>),
-
-            btns: [
-                {
-                    text: "예", onClick: () => {
-                        this.onDeleteFile(file);
-                    }
-                },
-                { text: "아니오", onClick: () => { } }
-            ]
-        });
-        return;
-    }
-    onDeleteFile(file) {//
-        console.log("onDeleteFile Function Call")
-        file.dir = file.path;
-        const _path = file.dir;
-        Http.post({
-            path: `/projects/${this.props.project.id}`,
-            params: { type: "delete" },
-            payload: { name: file.name, data: file.data, path: file.dir },
-        }).then(({ data }) => {
-            this.getProject(() => {
-                const { project, openFiles } = this.props;
-                const _find = (prev, curr) => {
-                    if (curr.path === _path) return curr;
-                    if (curr.files) {
-                        const fileInChildren = curr.files.reduce(_find, undefined);
-                        if (fileInChildren) return fileInChildren;
-                    }
-
-                    return prev;
-                }
-
-                const fileOnProject = project.files.reduce(_find, undefined);
-
-                openFiles[openFiles.indexOf(file)] = fileOnProject;
-                this.props.setOpenFiles(Object.assign([], openFiles));
-                this.props.setSelectFile(fileOnProject)
-                //console.log("hihihi");
-                //console.log(this.props.project.id);
+        try {
+            if(file != undefined){
+            Alert({
+                title: "파일을 삭제하시겠습니까?",
+                text:
+                    (<DeleteFileBody project={this.props.project}
+                        onChangePath={(path) => { file.dir = path }}
+                        onChangeName={(name) => { file.name = name }}></DeleteFileBody>),
+                btns: [
+                    {
+                        text: "예", onClick: () => {
+                            this.onDeleteFile(file);
+                        }
+                    },
+                    { text: "아니오", onClick: () => { } }
+                ]
             });
-        }).catch(e => {
-            console.log(e);
-            alert(e); // TODO: when fail to modify files
-        });
-    }//
+            return;
+        } }     catch (e) {
+        console.log(e.message);
+    }
+}
 
+    onDeleteFile(file) {
+        try {
+            console.log("onDeleteFile Function Call")
+            file.dir = file.path;
+            const _path = file.dir;
+            Http.post({
+                path: `/projects/${this.props.project.id}`,
+                params: { type: "delete" },
+                payload: { name: file.name, data: file.data, path: file.dir },
+            }).then(({ data }) => {
+                this.getProject(() => {
+                    const { project, openFiles } = this.props;
+                    const _find = (prev, curr) => {
+                        if (curr.path === _path) return curr;
+                        if (curr.files) {
+                            const fileInChildren = curr.files.reduce(_find, undefined);
+                            if (fileInChildren) return fileInChildren;
+                        }
 
-    dropFolder(text = "") {
-        console.log("DropFolder Function Call");
-        const folder = {
-            name: `undefined-${this.createFolderIdx++}`,
-            fullpath: null,
-            ext: "", data: text
+                        return prev;
+                    }
+
+                    const fileOnProject = project.files.reduce(_find, undefined);
+
+                    openFiles[openFiles.indexOf(file)] = fileOnProject;
+                    this.props.setOpenFiles(Object.assign([], openFiles));
+                    this.props.setSelectFile(fileOnProject)
+                    //console.log("hihihi");
+                    //console.log(this.props.project.id);
+                });
+            }).catch(e => {
+                console.log(e);
+                alert(e); // TODO: when fail to modify files
+            });
         }
-               console.log(folder.name)
-               console.log(folder.fullpath)
-               console.log(folder.ext)
-        Alert({
-            title: "폴더 삭제 ",
-            text : "삭제를 하시겠습니까?",
-
-            text: (<CreateNewFileBody project={this.props.project}
-                onChangePath={(path) => { folder.dir = path }}
-                onChangeName={(name) => { folder.name = name }}></CreateNewFileBody>),
-                
-            btns: [
-                {
-                    text: "예", onClick: () => {
-
-                        this.onDelteFolder(folder)
-                        console.log(folder)
-                    }
-                },
-                { text: "아니오", onClick: () => { } }
-            ]
-        });
+        catch (e) {
+            console.log(e.message);
+        }
     }
-    onDelteFolder(folder) {
-        console.log("onDeleteFolder Function Call");
-        const _path = folder.dir ? folder.dir + "/" : "" + folder.name;
-        console.log()
-        Http.post({
-            path: `/projects/${this.props.project.id}`,
-            params: { type: "delete" },
-            payload: { name: folder.name, data: folder.data, path: folder.dir },
-        }).then(({ data }) => {
-            this.getProject(() => {
-                const { project, openFiles } = this.props;
-                const _find = (prev, curr) => {
-                    if (curr.path === _path) return curr;
-                    if (curr.files) {
-                        const fileInChildren = curr.files.reduce(_find, undefined);
-                        if (fileInChildren) return fileInChildren;
-                    }
 
-                    return prev;
-                }
-
-                const fileOnProject = project.files.reduce(_find, undefined);
-
-                openFiles[openFiles.indexOf(folder)] = fileOnProject;
-                this.props.setOpenFiles(Object.assign([], openFiles));
-                this.props.setSelectFile(fileOnProject)
+    /*
+        dropFolder(folder) {
+            
+            const folder = {
+                name: `undefined-${this.createFolderIdx++}`,
+                fullpath: null,
+                ext: "", data: text
+            }
+            
+    
+            console.log("DropFolder Function Call")
+            console.log(folder);
+    
+            Alert({
+                title: "폴더를 삭제하시겠습니까?",
+                text: (<DeleteFolderBody project={this.props.project}
+                    onChangePath={(path) => { folder.dir = path }}
+                    onChangeName={(name) => { folder.name = name }}></DeleteFolderBody>),
+    
+                btns: [
+                    {
+                        text: "예", onClick: () => {
+                            this.onDelteFolder(folder);
+                        }
+                    },
+                    { text: "아니오", onClick: () => { } }
+                ]
             });
-        }).catch(e => {
-            console.log(e);
-            alert(e); // TODO: when fail to modify files
-        });
-    }//
-
+            return;
+        }
+        onDelteFolder(folder) {
+            console.log("onDeleteFolder Function Call");
+            const _path = folder.dir ? folder.dir + "/" : "" + folder.name;
+            console.log()
+            Http.post({
+                path: `/projects/${this.props.project.id}`,
+                params: { type: "delete" },
+                payload: { name: folder.name, data: folder.data, path: folder.dir },
+            }).then(({ data }) => {
+                this.getProject(() => {
+                    const { project, openFiles } = this.props;
+                    const _find = (prev, curr) => {
+                        if (curr.path === _path) return curr;
+                        if (curr.files) {
+                            const fileInChildren = curr.files.reduce(_find, undefined);
+                            if (fileInChildren) return fileInChildren;
+                        }
+    
+                        return prev;
+                    }
+    
+                    const fileOnProject = project.files.reduce(_find, undefined);
+    
+                    openFiles[openFiles.indexOf(folder)] = fileOnProject;
+                    this.props.setOpenFiles(Object.assign([], openFiles));
+                    this.props.setSelectFile(fileOnProject)
+                });
+            }).catch(e => {
+                console.log(e);
+                alert(e); // TODO: when fail to modify files
+     *       });
+       }
+    */
 
     closeFile(file) {
         const { openFiles, selectFile } = this.props;
@@ -505,6 +520,8 @@ class IDERouter extends React.Component {
     }
 
     renameFile(file) {
+        try {
+            if(file != undefined){
         console.log("change");
         console.log(file.path);
         Alert({
@@ -522,7 +539,13 @@ class IDERouter extends React.Component {
                 { text: "아니오", onClick: () => { } }
             ]
         });
+    }}
+     catch (e) {
+    console.log(e.message);
+     }
     }
+    
+
 
     onSaveRenamedFile(file) {
         console.log(file);
@@ -771,7 +794,7 @@ const mapStateToProps = (state) => {
 }
 
 const mapDispatchToProps = (dispatch) => {
-    console.log("22");
+
     return {
         setProject: (project) => { dispatch(setProject(project)); },
         closeFile: (file) => { dispatch(removeOpenFile(file)); },
@@ -781,7 +804,8 @@ const mapDispatchToProps = (dispatch) => {
         setEventType: (eventType) => { dispatch(setEventState(eventType)); },
         setOpenFiles: (files) => { dispatch(setOpenFiles(files)) },
         pushOpenFile: (file) => { dispatch(pushOpenFile(file)) },
-        setSelectFile: (file) => { dispatch(selectFile(file)) }
+        setSelectFile: (file) => { dispatch(selectFile(file)) },
+        setSelctFolder: (folder) => { dispatch(selectFolder(folder)) }
     }
 }
 
