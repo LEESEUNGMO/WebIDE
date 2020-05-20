@@ -9,7 +9,7 @@ import classnames from 'classnames';
 import Alert from '../modules/Alert';
 import Http from '../modules/Http';
 
-import { setProject, selectFile, setEventState, pushOpenFile, dropFile,renameFile, removeOpenFile, setOpenFiles } from '../actions';
+import { setProject, selectFile, setEventState, pushOpenFile, dropFile, dropFolder, renameFile, removeOpenFile, setOpenFiles } from '../actions';
 import { connect } from 'react-redux';
 import io from 'socket.io-client';
 import ModalPortal from '../modules/ModalPortal';
@@ -39,26 +39,27 @@ const SHORT_CUT_ITEM = {
 }
 
 const shortcuts = [
-    { ctrlKey: true, altKey: false, shiftKey: false, key: 'e', eventName: SHORT_CUT_ITEM.CLOSE},
-    { ctrlKey: true, altKey: false, shiftKey: false, key: 's', eventName: SHORT_CUT_ITEM.SAVE},
-    { ctrlKey: true, altKey: false, shiftKey: false, key: 'm', eventName: SHORT_CUT_ITEM.CREATE},
-    { ctrlKey: true, altKey: false, shiftKey: false, key: 'r', eventName: SHORT_CUT_ITEM.RUN}
+    { ctrlKey: true, altKey: false, shiftKey: false, key: 'e', eventName: SHORT_CUT_ITEM.CLOSE },
+    { ctrlKey: true, altKey: false, shiftKey: false, key: 's', eventName: SHORT_CUT_ITEM.SAVE },
+    { ctrlKey: true, altKey: false, shiftKey: false, key: 'm', eventName: SHORT_CUT_ITEM.CREATE },
+    { ctrlKey: true, altKey: false, shiftKey: false, key: 'r', eventName: SHORT_CUT_ITEM.RUN }
 ]
 
-function CreateNewFileBody({project, onChangeName, onChangePath}) {
+function CreateNewFileBody({ project, onChangeName, onChangePath }) {
     const [name, setName] = React.useState("");
-    const [ pathname, setPathname ] = React.useState("");
-    React.useEffect(()=>{ console.log("ischange!!, pathname", pathname); onChangePath(pathname); }, [ pathname ]);
+    const [pathname, setPathname] = React.useState("");
+    console.log("파일 저장");
+    React.useEffect(() => { console.log("ischange!!, pathname", pathname); onChangePath(pathname); }, [pathname]);
 
-    function Directory({files}) {
-        const directory = files.map((file, tabSize)=> {
-            if(!file.isDirectory) { return; } // 파일이 폴더가 아니면
+    function Directory({ files }) {
+        const directory = files.map((file, tabSize) => {
+            if (!file.isDirectory) { return; }
 
             return (
                 <>
-                    <p style={{"paddingLeft": tabSize*15}} // 생성시 뜨는 목록
-                        className={classnames({active: pathname === file.path })}
-                        onClick={()=>{setPathname(file.path)}}>{file.name}</p>
+                    <p style={{ "paddingLeft": tabSize * 15 }}
+                        className={classnames({ active: pathname === file.path })}
+                        onClick={() => { setPathname(file.path) }}>{file.name}</p>
                     <Directory files={file.files}></Directory>
                 </>
             )
@@ -70,27 +71,27 @@ function CreateNewFileBody({project, onChangeName, onChangePath}) {
         <>
             <div className="save-modal">
                 <div className="directory-structure">
-                    <p className={classnames({active: pathname === "" })} style={{"paddingLeft": 5}}>/</p>
-                    <Directory files={project.files} tabSize={0}/>
+                    <p className={classnames({ active: pathname === "" })} style={{ "paddingLeft": 5 }}>/</p>
+                    <Directory files={project.files} tabSize={0} />
                 </div>
                 <div className="input-form">
                     <label htmlFor="save-modal-name">이름</label>
-                    <input id="save-modal-name" type="text" value={name} 
-                        onChange={(e)=>{onChangeName(e.target.value); setName(e.target.value)}}/>
+                    <input id="save-modal-name" type="text" value={name}
+                        onChange={(e) => { onChangeName(e.target.value); setName(e.target.value) }} />
                 </div>
             </div>
         </>
     )
 }
 
-function RenameFileBody({project, onChangeName, onChangePath}) {
+function RenameFileBody({ project, onChangeName, onChangePath }) {
     const [name, setName] = React.useState("");
-    const [ pathname, setPathname ] = React.useState("");
+    const [pathname, setPathname] = React.useState("");
     console.log("파일명 수정");
-    React.useEffect(()=>{ console.log("ischange!!, pathname", pathname); onChangePath(pathname); }, [ pathname ]);
-    function Directory({files}) {
-        const directory = files.map((file, tabSize)=> {
-            if(!file.isDirectory) { return; }
+    React.useEffect(() => { console.log("ischange!!, pathname", pathname); onChangePath(pathname); }, [pathname]);
+    function Directory({ files }) {
+        const directory = files.map((file, tabSize) => {
+            if (!file.isDirectory) { return; }
             // return (
             //     <>
             //         <p style={{"paddingLeft": tabSize*15}} 
@@ -107,26 +108,27 @@ function RenameFileBody({project, onChangeName, onChangePath}) {
         <>
             <div className="save-modal">
                 <div className="directory-structure">
-                    <p className={classnames({active: pathname === "" })} style={{"paddingLeft": 5}}>/</p>
-                    <Directory files={project.files} tabSize={0}/>
+                    <p className={classnames({ active: pathname === "" })} style={{ "paddingLeft": 5 }}>/</p>
+                    <Directory files={project.files} tabSize={0} />
                 </div>
                 <div className="input-form">
                     <label htmlFor="save-modal-name">이름</label>
-                    <input id="save-modal-name" type="text" value={name} 
-                        onChange={(e)=>{onChangeName(e.target.value); setName(e.target.value)}}/>
+                    <input id="save-modal-name" type="text" value={name}
+                        onChange={(e) => { onChangeName(e.target.value); setName(e.target.value) }} />
                 </div>
             </div>
         </>
     )
 }
 
-function DeleteFileBody({project, onChangeName, onChangePath}) {
+function DeleteFileBody({ project, onChangeName, onChangePath }) {
     const [name, setName] = React.useState("");
-    const [ pathname, setPathname ] = React.useState("");
-    React.useEffect(()=>{ console.log("ischange!!, pathname", pathname); onChangePath(pathname); }, [ pathname ]);
-    function Directory({files}) {
-        const directory = files.map((file, tabSize)=> {
-            if(!file.isDirectory) { return; }
+    const [pathname, setPathname] = React.useState("");
+    React.useEffect(() => { console.log("ischange!!, pathname", pathname); onChangePath(pathname); }, [pathname]);
+
+    function Directory({ files }) {
+        const directory = files.map((file, tabSize) => {
+            if (!file.isDirectory) { return; }
             // return (
             //     <>
             //         <p style={{"paddingLeft": tabSize*15}} 
@@ -141,25 +143,39 @@ function DeleteFileBody({project, onChangeName, onChangePath}) {
 
     return (
         <>
-            <div className="save-modal">
-                <div className="directory-structure">
-                    <p className={classnames({active: pathname === "" })} style={{"paddingLeft": 5}}>/</p>
-                    <Directory files={project.files} tabSize={0}/>
-                </div>
-                <div className="input-form">
-                    <label htmlFor="save-modal-name">이름</label>
-                    <input id="save-modal-name" type="text" value={name} 
-                        onChange={(e)=>{onChangeName(e.target.value); setName(e.target.value)}}/>
-                </div>
-            </div>
         </>
     )
 }
+
+/*
+function DeleteFolderBody({ project, onChangeName, onChangePath }) {
+    const [name, setName] = React.useState("");
+    const [pathname, setPathname] = React.useState("");
+    React.useEffect(() => { console.log("ischange!!, pathname", pathname); onChangePath(pathname); }, [pathname]);
+
+    function Directory({ files }) {
+        const directory = files.map((file, tabSize) => {
+            if (!file.isDirectory) { return; }
+            // return (
+            //     <>
+            //         <p style={{"paddingLeft": tabSize*15}} 
+            //             className={classnames({active: pathname === file.path })}
+            //             onClick={()=>{setPathname(file.path)}}>{file.name}</p>
+            //         <Directory files={file.files}></Directory>
+            //     </>
+            // )//폴더목록
+        });
+        return directory;
+    }
+
+}
+*/
+
 
 
 
 class IDERouter extends React.Component {
-    state = { consoleOut: "", consoleBuffer: "" ,lintOut: "", consoleType: "console", navigation: true, console: true };
+    state = { consoleOut: "", consoleBuffer: "", lintOut: "", consoleType: "console", navigation: true, console: true };
 
     constructor(props) {
         super(props);
@@ -167,11 +183,11 @@ class IDERouter extends React.Component {
     }
 
     shortcutHandler(event) {
-        const item = shortcuts.find(e => ( e.key === event.key && e.altKey === event.altKey && e.ctrlKey === event.ctrlKey && e.shiftKey === event.shiftKey ));
-        if(!item) return;
+        const item = shortcuts.find(e => (e.key === event.key && e.altKey === event.altKey && e.ctrlKey === event.ctrlKey && e.shiftKey === event.shiftKey));
+        if (!item) return;
 
         event.preventDefault();
-        switch(item.eventName) {
+        switch (item.eventName) {
             case SHORT_CUT_ITEM.CLOSE:
                 this.props.setEventType(EVENT_TYPE.CLOSE_FILE);
                 break;
@@ -193,15 +209,15 @@ class IDERouter extends React.Component {
         window.addEventListener("keydown", this.shortcutHandler);
         this.getProject();
     }
-    
+
     componentWillUnmount() {
         window.removeEventListener("keydown", this.shortcutHandler);
     }
 
     componentDidUpdate(prevProps) {
-        if(prevProps.globalEvent.eventType === this.props.globalEvent.eventType || !this.props.globalEvent.eventType) return;
+        if (prevProps.globalEvent.eventType === this.props.globalEvent.eventType || !this.props.globalEvent.eventType) return;
         const { eventType, additional } = this.props.globalEvent;
-        switch(eventType) {
+        switch (eventType) {
             case EVENT_TYPE.SAVE:
                 this.saveFile(this.props.selectFile);
                 break;
@@ -211,14 +227,14 @@ class IDERouter extends React.Component {
             case EVENT_TYPE.NEW_FOLDER:
                 this.createNewFolder("");
                 break;
-            case EVENT_TYPE.DROP_FOLDER:
-                this.dropFolder(this.props.selectFile);
-                break;
             case EVENT_TYPE.CLOSE_FILE:
                 this.closeFile(additional ? additional : this.props.selectFile);
                 break;
             case EVENT_TYPE.DROP_FILE:
                 this.dropFile(this.props.selectFile);
+                break;
+            case EVENT_TYPE.DROP_FOLDER:
+                this.dropFolder(this.props.selectFile);
                 break;
             case EVENT_TYPE.RENAME_FILE:
                 this.renameFile(this.props.selectFile);
@@ -245,17 +261,17 @@ class IDERouter extends React.Component {
     }
 
     getProject(cb) {
-        Http.get({path: `/projects/${this.props.match.params.id}`}).then(({ data })=>{
+        Http.get({ path: `/projects/${this.props.match.params.id}` }).then(({ data }) => {
             this.props.setProject(data);
-            if(typeof cb === 'function') cb();
-        }).catch(()=>{});        
+            if (typeof cb === 'function') cb();
+        }).catch(() => { });
     }
 
     onChangeText(text) {
         const { openFiles, selectFile } = this.props;
-        if(!selectFile) { 
+        if (!selectFile) {
             this.createNewFile(text);
-            return; 
+            return;
         }
         const idx = openFiles.indexOf(selectFile);
         openFiles[idx].data = text;
@@ -264,64 +280,69 @@ class IDERouter extends React.Component {
     }
 
     createFileIdx = 1;
-    createNewFile(text="") {
+    createNewFile(text = "") {
+        console.log("시작");
         const file = {
             name: `undefined-${this.createFileIdx++}`,
             fullpath: null, modify: true,
-            ext: "", data : text
+            ext: "", data: text
         }
+
         this.props.pushOpenFile(file);
     }
 
     createFolderIdx = 1;
-    createNewFolder(text=""){
+    createNewFolder(text = "") {
         const folder = {
             name: `undefined-${this.createFolderIdx++}`,
             fullpath: null,
-            ext: "", data : text
+            ext: "", data: text
         }
+        console.log("폴더 생성");
         Alert({
             title: "새 폴더 생성",
-            text: (<CreateNewFileBody project={this.props.project} 
-                    onChangePath={(path)=>{folder.dir = path}}
-                    onChangeName={(name)=>{folder.name = name}}></CreateNewFileBody>),
+            text: (<CreateNewFileBody project={this.props.project}
+                onChangePath={(path) => { folder.dir = path }}
+                onChangeName={(name) => { folder.name = name }}></CreateNewFileBody>),
             btns: [
-                {text: "예", onClick: ()=>{
-                    console.log("createfilebody");
-                    console.log(!folder.isDirectory);
-                    this.onSaveNewFolder(folder)
-                }},
-                {text: "아니오", onClick: ()=>{}}
+                {
+                    text: "예", onClick: () => {
+                        console.log("createfilebody");
+                        this.onSaveNewFolder(folder)
+                    }
+                },
+                { text: "아니오", onClick: () => { } }
             ]
         });
     }
 
-    onSaveNewFolder(folder){
+    onSaveNewFolder(folder) {
+        console.log("e");
         const _path = folder.dir ? folder.dir + "/" : "" + folder.name;
         Http.post({
             path: `/projects/${this.props.project.id}`,
             params: { type: "directory" },
             payload: { name: folder.name, data: folder.data, path: folder.dir },
-        }).then(({data})=>{ 
-            this.getProject(()=>{
+        }).then(({ data }) => {
+            this.getProject(() => {
                 const { project, openFiles } = this.props;
                 const _find = (prev, curr) => {
-                    if(curr.path === _path) return curr;
-                    if(curr.files) {
+                    if (curr.path === _path) return curr;
+                    if (curr.files) {
                         const fileInChildren = curr.files.reduce(_find, undefined);
-                        if(fileInChildren) return fileInChildren;
+                        if (fileInChildren) return fileInChildren;
                     }
-        
+
                     return prev;
                 }
-        
+
                 const fileOnProject = project.files.reduce(_find, undefined);
 
                 openFiles[openFiles.indexOf(folder)] = fileOnProject;
                 this.props.setOpenFiles(Object.assign([], openFiles));
                 this.props.setSelectFile(fileOnProject)
             });
-        }).catch(e=>{
+        }).catch(e => {
             console.log(e);
             alert(e); // TODO: when fail to modify files
         });
@@ -329,126 +350,152 @@ class IDERouter extends React.Component {
 
 
     dropFile(file) {
-        const folder = {
-            name: `undefined-${this.createFolderIdx++}`,
-            fullpath: null,
-            ext: "", data : ""
-        }
-        if(!file.isDirectory){//
-            console.log(file.isDirectory);
+        console.log("DropFile Function Call")
+        console.log(file);
+        
         Alert({
-                title: "파일 삭제", 
-                text: (<DeleteFileBody project={this.props.project} 
-                    onChangePath={(path)=>{file.dir = path}}
-                    onChangeName={(name)=>{file.name = name}}></DeleteFileBody>),
-                btns: [
-                    {text: "예", onClick: ()=>{
+            title: "파일 삭제",
+            text :(<DeleteFileBody project={this.props.project}
+                onChangePath={(path) => { file.dir = path }}
+                onChangeName={(name) => { file.name = name }}></DeleteFileBody>),
+
+            btns: [
+                {
+                    text: "예", onClick: () => {
                         this.onDeleteFile(file);
-                    }},
-                    {text: "아니오", onClick: ()=>{}}
-                ]
-            });
-        }
-            Alert({
-                title: "폴더 삭제 ",
-                text: (<DeleteFileBody project={this.props.project} 
-                        onChangePath={(path)=>{folder.dir = path}}
-                        onChangeName={(name)=>{folder.name = name}}></DeleteFileBody>),
-                btns: [
-                    {text: "예", onClick: ()=>{
-                        this.onDelteFolder(folder)
-                    }},
-                    {text: "아니오", onClick: ()=>{}}
-                ]
-            });
-            return;
+                    }
+                },
+                { text: "아니오", onClick: () => { } }
+            ]
+        });
+        return;
     }
-    
-    onDeleteFile(file){//
+    onDeleteFile(file) {//
+        console.log("onDeleteFile Function Call")
         file.dir = file.path;
         const _path = file.dir;
         Http.post({
             path: `/projects/${this.props.project.id}`,
             params: { type: "delete" },
             payload: { name: file.name, data: file.data, path: file.dir },
-        }).then(({data})=>{ 
-            this.getProject(()=>{
+        }).then(({ data }) => {
+            this.getProject(() => {
                 const { project, openFiles } = this.props;
                 const _find = (prev, curr) => {
-                    if(curr.path === _path) return curr;
-                    if(curr.files) {
+                    if (curr.path === _path) return curr;
+                    if (curr.files) {
                         const fileInChildren = curr.files.reduce(_find, undefined);
-                        if(fileInChildren) return fileInChildren;
+                        if (fileInChildren) return fileInChildren;
                     }
-        
+
                     return prev;
                 }
-        
+
                 const fileOnProject = project.files.reduce(_find, undefined);
-    
+
                 openFiles[openFiles.indexOf(file)] = fileOnProject;
                 this.props.setOpenFiles(Object.assign([], openFiles));
                 this.props.setSelectFile(fileOnProject)
+                //console.log("hihihi");
+                //console.log(this.props.project.id);
             });
-        }).catch(e=>{
+        }).catch(e => {
             console.log(e);
             alert(e); // TODO: when fail to modify files
         });
     }//
-    
-    onDelteFolder(folder){ 
+
+
+    dropFolder(text = "") {
+        console.log("DropFolder Function Call");
+        const folder = {
+            name: `undefined-${this.createFolderIdx++}`,
+            fullpath: null,
+            ext: "", data: text
+        }
+               console.log(folder.name)
+               console.log(folder.fullpath)
+               console.log(folder.ext)
+        Alert({
+            title: "폴더 삭제 ",
+            text : "삭제를 하시겠습니까?",
+
+            text: (<CreateNewFileBody project={this.props.project}
+                onChangePath={(path) => { folder.dir = path }}
+                onChangeName={(name) => { folder.name = name }}></CreateNewFileBody>),
+                
+            btns: [
+                {
+                    text: "예", onClick: () => {
+
+                        this.onDelteFolder(folder)
+                        console.log(folder)
+                    }
+                },
+                { text: "아니오", onClick: () => { } }
+            ]
+        });
+    }
+    onDelteFolder(folder) {
+        console.log("onDeleteFolder Function Call");
         const _path = folder.dir ? folder.dir + "/" : "" + folder.name;
+        console.log()
         Http.post({
             path: `/projects/${this.props.project.id}`,
             params: { type: "delete" },
             payload: { name: folder.name, data: folder.data, path: folder.dir },
-        }).then(({data})=>{ 
-            this.getProject(()=>{
+        }).then(({ data }) => {
+            this.getProject(() => {
                 const { project, openFiles } = this.props;
                 const _find = (prev, curr) => {
-                    if(curr.path === _path) return curr;
-                    if(curr.files) {
+                    if (curr.path === _path) return curr;
+                    if (curr.files) {
                         const fileInChildren = curr.files.reduce(_find, undefined);
-                        if(fileInChildren) return fileInChildren;
+                        if (fileInChildren) return fileInChildren;
                     }
-        
+
                     return prev;
                 }
-        
+
                 const fileOnProject = project.files.reduce(_find, undefined);
 
                 openFiles[openFiles.indexOf(folder)] = fileOnProject;
                 this.props.setOpenFiles(Object.assign([], openFiles));
                 this.props.setSelectFile(fileOnProject)
             });
-        }).catch(e=>{
+        }).catch(e => {
+            console.log(e);
             alert(e); // TODO: when fail to modify files
         });
     }//
-    
-    
+
+
     closeFile(file) {
         const { openFiles, selectFile } = this.props;
         const idx = openFiles.indexOf(file);
-        if(idx === -1) return;
+        if (idx === -1) return;
 
         const setNextFile = () => {
             openFiles.splice(idx, 1);
             this.props.closeFile(selectFile);
         }
-    
-        if(selectFile.modify) {
+
+        if (selectFile.modify) {
             Alert({
-                title: "저장되지 않았습니다.", 
-                text: "저장하시겠습니까?", 
+                title: "저장되지 않았습니다.",
+                text: "저장하시겠습니까?",
                 btns: [
-                    {text: "예", onClick: ()=>{
-                        this.saveFile(selectFile, setNextFile);
-                    }},
-                    {text: "아니오", onClick: ()=>{
-                        setNextFile();
-                    }},
-                    {text: "취소", onClick: ()=>{}},
+                    {
+                        text: "예", onClick: () => {
+                            this.saveFile(selectFile, setNextFile);
+                        }
+                    },
+                    {
+                        text: "아니오", onClick: () => {
+                            setNextFile();
+                        }
+                    },
+                    { text: "취소", onClick: () => { } },
                 ]
             });
             return;
@@ -456,53 +503,61 @@ class IDERouter extends React.Component {
 
         setNextFile();
     }
-    
+
     renameFile(file) {
+        console.log("change");
+        console.log(file.path);
         Alert({
             title: "파일명 변경",
-            text: (<RenameFileBody project={this.props.project} 
-                    onChangePath={(path)=>{file.dir = path}}
-                    onChangeName={(name)=>{file.name = name}}></RenameFileBody>),
+            text: (<RenameFileBody project={this.props.project}
+                onChangePath={(path) => { file.dir = path }}
+                onChangeName={(name) => { file.name = name }}></RenameFileBody>),
             btns: [
-                {text: "예", onClick: ()=>{
-                    this.onSaveRenamedFile(file);
-                }},
-                {text: "아니오", onClick: ()=>{}}
+                {
+                    text: "예", onClick: () => {
+                        console.log("createfilebody");
+                        this.onSaveRenamedFile(file);
+                    }
+                },
+                { text: "아니오", onClick: () => { } }
             ]
         });
-}
+    }
 
-onSaveRenamedFile(file){
-    file.dir = file.path;
-    const _path = file.dir;
-    //file.dir ? file.dir + "/" : "" + file.name;
-    Http.post({
-        path: `/projects/${this.props.project.id}`,
-        params: { type: "rename" },
-        payload: { name: file.name, data: file.data, path: file.dir },
-    }).then(({data})=>{ 
-        this.getProject(()=>{
-            const { project, openFiles } = this.props;
-            const _find = (prev, curr) => {
-                if(curr.path === _path) return curr;
-                if(curr.files) {
-                    const fileInChildren = curr.files.reduce(_find, undefined);
-                    if(fileInChildren) return fileInChildren;
+    onSaveRenamedFile(file) {
+        console.log(file);
+        file.dir = file.path;
+        const _path = file.dir;
+        //file.dir ? file.dir + "/" : "" + file.name;
+        console.log(_path);
+        Http.post({
+            path: `/projects/${this.props.project.id}`,
+            params: { type: "rename" },
+            payload: { name: file.name, data: file.data, path: file.dir },
+        }).then(({ data }) => {
+            this.getProject(() => {
+                const { project, openFiles } = this.props;
+                const _find = (prev, curr) => {
+                    if (curr.path === _path) return curr;
+                    if (curr.files) {
+                        const fileInChildren = curr.files.reduce(_find, undefined);
+                        if (fileInChildren) return fileInChildren;
+                    }
+
+                    return prev;
                 }
-    
-                return prev;
-            }
-    
-            const fileOnProject = project.files.reduce(_find, undefined);
 
-            openFiles[openFiles.indexOf(file)] = fileOnProject;
-            this.props.setOpenFiles(Object.assign([], openFiles));
-            this.props.setSelectFile(fileOnProject)
+                const fileOnProject = project.files.reduce(_find, undefined);
+
+                openFiles[openFiles.indexOf(file)] = fileOnProject;
+                this.props.setOpenFiles(Object.assign([], openFiles));
+                this.props.setSelectFile(fileOnProject)
+            });
+        }).catch(e => {
+            console.log(e);
+            alert(e); // TODO: when fail to modify files
         });
-    }).catch(e=>{
-        alert(e); // TODO: when fail to modify files
-    });
-}
+    }
 
     onSaveNewFile(file) {
         const _path = file.dir ? file.dir + "/" : "" + file.name;
@@ -510,72 +565,80 @@ onSaveRenamedFile(file){
             path: `/projects/${this.props.project.id}`,
             params: { type: "file" },
             payload: { name: file.name, data: file.data, path: file.dir },
-        }).then(({data})=>{ 
-            this.getProject(()=>{
+        }).then(({ data }) => {
+            this.getProject(() => {
                 const { project, openFiles } = this.props;
                 const _find = (prev, curr) => {
-                    if(curr.path === _path) return curr;
-                    if(curr.files) {
+                    if (curr.path === _path) return curr;
+                    if (curr.files) {
                         const fileInChildren = curr.files.reduce(_find, undefined);
-                        if(fileInChildren) return fileInChildren;
+                        if (fileInChildren) return fileInChildren;
                     }
-        
+
                     return prev;
                 }
-        
+
                 const fileOnProject = project.files.reduce(_find, undefined);
 
                 openFiles[openFiles.indexOf(file)] = fileOnProject;
                 this.props.setOpenFiles(Object.assign([], openFiles));
                 this.props.setSelectFile(fileOnProject)
             });
-        }).catch(e=>{
+        }).catch(e => {
+            console.log(e);
             alert(e); // TODO: when fail to modify files
         });
     }
 
-    saveFile(file, cb=()=>{}) {
-        if(!file) return;
+    saveFile(file, cb = () => { }) {
+        if (!file) return;
 
         const { project } = Object.assign({}, this.props);
         function _find(prev, curr) {
-            if(curr.fullpath === file.fullpath) return curr;
-            if(curr.files) {
+            if (curr.fullpath === file.fullpath) return curr;
+            if (curr.files) {
                 const fileInChildren = curr.files.reduce(_find, undefined);
-                if(fileInChildren) return fileInChildren;
+                if (fileInChildren) return fileInChildren;
             }
 
             return prev;
         }
 
         const fileOnProject = project.files.reduce(_find, undefined);
-        
-        if(!fileOnProject) {
+
+        if (!fileOnProject) {
+            console.log("tnstj?")
             Alert({
                 title: "새 파일 생성",
-                text: (<CreateNewFileBody project={this.props.project} 
-                        onChangePath={(path)=>{file.dir = path}}
-                        onChangeName={(name)=>{file.name = name}}></CreateNewFileBody>),
+                text: (<CreateNewFileBody project={this.props.project}
+                    onChangePath={(path) => { file.dir = path }}
+                    onChangeName={(name) => { file.name = name }}></CreateNewFileBody>),
                 btns: [
-                    {text: "예", onClick: ()=>{
-                        this.onSaveNewFile(file)
-                    }},
-                    {text: "아니오", onClick: ()=>{}}
+                    {
+                        text: "예", onClick: () => {
+                            console.log("createfilebody");
+                            console.log(file.dir);
+                            this.onSaveNewFile(file)
+                        }
+                    },
+                    { text: "아니오", onClick: () => { } }
                 ]
             });
             return;
         }
 
+        console.log(file.path);
 
         Http.post({
             path: `/projects/${this.props.project.id}`,
             params: { type: "modify" },
             payload: { data: file.data, path: file.path },
             disableLoading: true
-        }).catch(e=>{
+        }).catch(e => {
+            console.log(e);
             alert(e); // TODO: when fail to modify files
         });
-        
+
         file.modify = false; // 이게 왜되냐?
         fileOnProject.data = file.data;
         this.props.setProject(project);
@@ -584,117 +647,118 @@ onSaveRenamedFile(file){
 
     output = ""
     compileAndRunSource() {
+        console.log("aa")
         const { project } = this.props;
         const socket = io(process.env.REACT_APP_API_SERVER);
         socket.emit("compile", { projectId: project.id });
 
         this.output = "";
-        socket.on("projectInfo", (data)=>{
-            if(!data) {
+        socket.on("projectInfo", (data) => {
+            if (!data) {
                 console.log("project is not exists!");
                 socket.close();
                 return;
             }
             console.log(data);
-            
+
             this.output += "프로세스를 실행합니다.\n";
-            this.setState({consoleOut: this.output});
+            this.setState({ consoleOut: this.output });
         });
-    
-        socket.on("result", (data)=>{
-            if(data.isEnd) {
-                this.setState({consoleOut: this.output += "\n\n프로세스를 종료합니다."});
-                this.setState({socket: null});
+
+        socket.on("result", (data) => {
+            if (data.isEnd) {
+                this.setState({ consoleOut: this.output += "\n\n프로세스를 종료합니다." });
+                this.setState({ socket: null });
                 socket.close();
             } else {
-                this.setState({consoleOut: this.output += data.line + "\n"});
+                this.setState({ consoleOut: this.output += data.line + "\n" });
             }
         });
-        this.setState({consoleType: "console", socket});
+        this.setState({ consoleType: "console", socket });
     }
 
     checkLint() {
         console.log("check lint");
-        this.setState({consoleType: "lint"});
+        this.setState({ consoleType: "lint" });
 
         const { project } = this.props;
         const socket = io(process.env.REACT_APP_API_SERVER);
         socket.emit("lint", { projectId: project.id });
 
         let output = "";
-        socket.on("lintProjectInfo", (data)=>{
-            if(!data) {
+        socket.on("lintProjectInfo", (data) => {
+            if (!data) {
                 console.log("project is not exists!");
                 socket.close();
                 return;
             }
             console.log(data);
-            
+
             output += "린트를 검사합니다.\n";
-            this.setState({lintOut: output});
+            this.setState({ lintOut: output });
         });
-    
-        socket.on("result", (data)=>{
-            if(data.isEnd) {
-                this.setState({lintOut: output += "\n\n린트 검사를 종료합니다."});
+
+        socket.on("result", (data) => {
+            if (data.isEnd) {
+                this.setState({ lintOut: output += "\n\n린트 검사를 종료합니다." });
                 socket.close();
             } else {
-                this.setState({lintOut: output += data.line + "\n"});
+                this.setState({ lintOut: output += data.line + "\n" });
             }
         });
     }
 
     toggleConsole() {
         const { console } = this.state;
-        this.setState({console: !console});
+        this.setState({ console: !console });
     }
 
     toggleNavigation() {
         const { navigation } = this.state;
-        this.setState({navigation: !navigation});
+        this.setState({ navigation: !navigation });
     }
 
     openReportListModal() {
-        this.setState({reportListModal: true});
+        this.setState({ reportListModal: true });
     }
 
     consoleKeyDown(event) {
         console.log(this.state.consoleBuffer);
-        if(event.keyCode === 13) {
+        if (event.keyCode === 13) {
             this.state.socket.emit("input", { input: this.state.consoleBuffer });
-            this.setState({consoleBuffer: ""});
+            this.setState({ consoleBuffer: "" });
             return;
         }
         const input = String.fromCharCode(event.keyCode)
-        if(/^[a-zA-Z0-9]/.test(input)) this.setState({consoleBuffer: this.state.consoleBuffer+input});
+        if (/^[a-zA-Z0-9]/.test(input)) this.setState({ consoleBuffer: this.state.consoleBuffer + input });
     }
 
     consoleChange(event) {
-        if(!this.state.socket) return;
-        if(!event.target.value.includes(this.output)) return;
-        
-        this.setState({consoleOut: event.target.value});
+        if (!this.state.socket) return;
+        if (!event.target.value.includes(this.output)) return;
+
+        this.setState({ consoleOut: event.target.value });
     }
 
-    render() {        
+    render() {
         return (
             <>
                 <ModalPortal>
                     {this.state.reportListModal &&
-                    <ReportListModal 
-                        onClose={()=>{this.setState({reportListModal: false})}} 
-                        project={this.props.project}/>}
+                        <ReportListModal
+                            onClose={() => { this.setState({ reportListModal: false }) }}
+                            project={this.props.project} />}
                 </ModalPortal>
-                <IDEcontainer {...this.props} 
+                <IDEcontainer {...this.props}
                     onChangeText={this.onChangeText.bind(this)}
                     consoleType={this.state.consoleType}
                     consoleOut={this.state.consoleOut}
                     lintOut={this.state.lintOut}
-                    setConsoleType={(consoleType)=>{this.setState({consoleType})}}
+                    setConsoleType={(consoleType) => { this.setState({ consoleType }) }}
                     navigation={this.state.navigation}
                     consoleChange={this.consoleChange.bind(this)}
                     consoleKeyDown={this.consoleKeyDown.bind(this)}
-                    _console={this.state.console}/>
+                    _console={this.state.console} />
             </>
         );
     }
@@ -706,26 +770,28 @@ const mapStateToProps = (state) => {
     return { ...project, globalEvent }
 }
 
-const mapDispatchToProps = (dispatch) => {console.log("22");
+const mapDispatchToProps = (dispatch) => {
+    console.log("22");
     return {
         setProject: (project) => { dispatch(setProject(project)); },
         closeFile: (file) => { dispatch(removeOpenFile(file)); },
-        dropFile: (file) => { dispatch(dropFile(file))},
-        renameFile: (file) => { dispatch(renameFile(file))},
+        dropFile: (file) => { dispatch(dropFile(file)) },
+        dropFolder: (folder) => { dispatch(dropFolder(folder)) },
+        renameFile: (file) => { dispatch(renameFile(file)) },
         setEventType: (eventType) => { dispatch(setEventState(eventType)); },
         setOpenFiles: (files) => { dispatch(setOpenFiles(files)) },
-        pushOpenFile: (file) => {dispatch(pushOpenFile(file))},
-        setSelectFile: (file) => {dispatch(selectFile(file))}
+        pushOpenFile: (file) => { dispatch(pushOpenFile(file)) },
+        setSelectFile: (file) => { dispatch(selectFile(file)) }
     }
 }
 
-function ReportListModal({project, onClose}) {
-    const [ reports, setReports ] = React.useState([]);
+function ReportListModal({ project, onClose }) {
+    const [reports, setReports] = React.useState([]);
     const [selectIdx, setSelectIdx] = React.useState(null);
-    React.useEffect(()=> {
+    React.useEffect(() => {
         Http.get({
             path: "/reports"
-        }).then(({data})=> {
+        }).then(({ data }) => {
             setReports(data.reports);
             setSelectIdx(null);
         })
@@ -733,11 +799,11 @@ function ReportListModal({project, onClose}) {
     const btns = [{
         text: "확인",
         onClick: () => {
-            if(selectIdx === null) {
+            if (selectIdx === null) {
                 alert("과제를 선택해주세요.");
                 return;
             }
-            
+
             console.log(project);
             Http.put({
                 path: "/reports",
@@ -745,10 +811,10 @@ function ReportListModal({project, onClose}) {
                     id: reports[selectIdx].id,
                     projectId: project.id
                 }
-            }).then(()=>{
+            }).then(() => {
                 alert("제출되었습니다.");
                 onClose();
-            }).catch(e=>{
+            }).catch(e => {
                 alert("제출 중 오류가 발생했습니다.");
             })
         }
@@ -757,17 +823,17 @@ function ReportListModal({project, onClose}) {
         onClick: onClose
     }];
 
-    return(
+    return (
         <Modal className="REPORT_MODAL" title="과제 제출" btns={btns} onClose={onClose}>
             <p>* 과제를 선택해주세요.</p>
             <ul>
                 {reports.map((report, key) => {
-                return (
-                    <li key={`report-${key}`} onClick={()=>{setSelectIdx(key)}}
-                        className={classnames({active: key === selectIdx})}>
-                        {report.title} <span className="limit">{moment(report.limitedate).format('YYYY-MM-DD')}</span>
-                    </li>
-                );
+                    return (
+                        <li key={`report-${key}`} onClick={() => { setSelectIdx(key) }}
+                            className={classnames({ active: key === selectIdx })}>
+                            {report.title} <span className="limit">{moment(report.limitedate).format('YYYY-MM-DD')}</span>
+                        </li>
+                    );
                 })}
                 {reports.length === 0 &&
                     <li>

@@ -111,9 +111,17 @@ function FileNavigation({}) {
             </MenuItem>
             <MenuItem
             data = {{ action: "DELETE"}}
+            onClick={(e)=>{e.stopPropagation(); dispatch(setEventState(EVENT_TYPE.DROP_FOLDER))}}
+            
+           
+            >
+                폴더 삭제
+            </MenuItem>
+            <MenuItem
+            data = {{ action: "DELETE"}}
             onClick={(e)=>{e.stopPropagation(); dispatch(setEventState(EVENT_TYPE.DROP_FILE))}}
             >
-                삭제
+                파일 삭제
             </MenuItem>
         </ContextMenu>
         </Fragment>
