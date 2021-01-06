@@ -7,7 +7,7 @@
     "@testing-library/react": "^9.4.0",
     "@testing-library/user-event": "^7.2.1",
     "ace-builds": "^1.4.8",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "bootstrap4-toggle": "^3.6.1",
     "ckeditor4-react": "^1.0.1",
     "classname": "0.0.0",
